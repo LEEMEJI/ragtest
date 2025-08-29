@@ -16,28 +16,22 @@ jobs:
         run: |
           pwd
           ls -la
-
-      # 업로드: 필요한 파일만 선택 (거대한 .venv/.git 업로드 방지)
-      - name: Upload project to server
+      - name: Tar project
+        run: tar czf bundle.tgz Dockerfile requirements.txt main.py .dockerignore .github/workflows/deploy.yml
+        
+      - name: Upload tarball
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           port: ${{ secrets.SSH_PORT }}
           key: ${{ secrets.DEPLOY_KEY }}
-          # 필요한 파일만 업로드 (여러 줄 가능)
-          source: |
-            Dockerfile
-            requirements.txt
-            main.py
-            .dockerignore
-            .github/workflows/deploy.yml
-          target: /opt/ragtest
-          rm: true
+          source: "bundle.tgz"
+          target: "/opt/ragtest"
+          rm: false
           debug: true
-
-      # 서버에서 Docker 설치(없으면), 빌드, 실행
-      - name: Remote docker build & restart
+      
+      - name: Unpack & build on server
         uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -46,36 +40,20 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
             set -e
-
-            # 0) Docker 없으면 설치
+            cd /opt/ragtest
+            tar xzf bundle.tgz
+            # 이하 동일
             if ! command -v docker >/dev/null 2>&1; then
-              apt-get update
-              apt-get install -y docker.io
+              apt-get update && apt-get install -y docker.io
               systemctl enable --now docker
             fi
-
-            # 1) 작업 디렉터리 준비
-            mkdir -p /opt/ragtest
-            cd /opt/ragtest
-
-            # 2) 캐시/데이터 영속 폴더(호스트) 준비
-            mkdir -p /root/ragtest-data      # RAG 벡터DB(/data/chroma) 저장
-            mkdir -p /root/hf-cache          # 허깅페이스 모델 캐시(/root/.cache) 저장
-
-            # 3) 도커 빌드
+            mkdir -p /root/ragtest-data /root/hf-cache
             docker build --pull -t ragtest:latest .
-
-            # 4) 기존 컨테이너 정리
             docker rm -f ragtest || true
-
-            # 5) 새 컨테이너 실행
-            docker run -d --name ragtest \
-              -p 5000:5000 \
+            docker run -d --name ragtest -p 5000:5000 \
               -v /root/ragtest-data:/data \
               -v /root/hf-cache:/root/.cache \
-              --restart unless-stopped \
-              ragtest:latest
-
-            # 6) 상태 표시
+              --restart unless-stopped ragtest:latest
             sleep 2
             docker ps --filter "name=ragtest"
+
