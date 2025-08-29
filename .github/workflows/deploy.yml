@@ -11,6 +11,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        
+      - name: Debug - list files
+        run: ls -la 
 
       # 업로드: 필요한 파일만 선택 (거대한 .venv/.git 업로드 방지)
       - name: Upload project to server
