@@ -14,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 앱 소스 복사
 COPY . .
 
+# 데이터/임베딩 영속화 경로
+VOLUME ["/data"]
+
 # 컨테이너 포트 (정보용)
 EXPOSE 5000
 
