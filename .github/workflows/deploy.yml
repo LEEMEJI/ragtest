@@ -50,10 +50,11 @@ jobs:
             mkdir -p /root/ragtest-data /root/hf-cache
             docker build --pull -t ragtest:latest .
             docker rm -f ragtest || true
-            docker run -d --name ragtest -p 5000:5000 \
+            docker run -d --name ragtest \
+              -p 5000:5000 \
               -v /root/ragtest-data:/data \
               -v /root/hf-cache:/root/.cache \
-              --restart unless-stopped ragtest:latest
-            sleep 2
-            docker ps --filter "name=ragtest"
+              -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+              --restart unless-stopped \
+              ragtest:latest
 
