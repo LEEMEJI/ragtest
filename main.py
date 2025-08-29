@@ -2,6 +2,7 @@ from openai import OpenAI
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from pathlib import Path
+from typing import List
 import os
 import io
 
