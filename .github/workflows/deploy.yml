@@ -34,6 +34,7 @@ jobs:
             .github/workflows/deploy.yml
           target: /opt/ragtest
           rm: true
+          debug: true
 
       # 서버에서 Docker 설치(없으면), 빌드, 실행
       - name: Remote docker build & restart
